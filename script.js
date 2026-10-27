@@ -28,18 +28,18 @@
     ctx.restore();}
 
   /* ---- fixed starfield ---- */
-  var sc=document.getElementById('stars'),sx=sc.getContext('2d'),field=[],SW,SH;
+  var sc=document.getElementById('stars'),sx=sc.getContext('2d'),field=[],SW,SH,haze;
   function initStars(){
     SW=sc.width=innerWidth*DPR;SH=sc.height=innerHeight*DPR;
     var n=Math.round(innerWidth*innerHeight/2600);field=[];
     for(var i=0;i<n;i++){var c=Math.random()<.05?[243,201,139]:(Math.random()<.4?[159,212,255]:[242,245,255]);
       field.push({x:Math.random()*SW,y:Math.random()*SH,r:(Math.random()<.92?rnd(.3,.8):rnd(.9,1.4))*DPR,a:rnd(.2,.8),p:Math.random()*6.28,s:rnd(.4,1.6),c:c});}
+    haze=document.createElement('canvas');haze.width=SW;haze.height=SH;var hx=haze.getContext('2d');
+    [[.18,.3,.5,'rgba(70,110,170,.06)'],[.82,.7,.55,'rgba(90,120,190,.05)'],[.6,.15,.35,'rgba(243,201,139,.025)']].forEach(function(h){var g=hx.createRadialGradient(h[0]*SW,h[1]*SH,0,h[0]*SW,h[1]*SH,h[2]*Math.max(SW,SH));g.addColorStop(0,h[3]);g.addColorStop(1,'rgba(0,0,0,0)');hx.fillStyle=g;hx.fillRect(0,0,SW,SH);});
     drawStars(0);}
   function drawStars(t){
     sx.clearRect(0,0,SW,SH);
-    // soft nebula haze
-    var hz=[[.18,.3,.5,'rgba(70,110,170,.06)'],[.82,.7,.55,'rgba(90,120,190,.05)'],[.6,.15,.35,'rgba(243,201,139,.025)']];
-    hz.forEach(function(h){var g=sx.createRadialGradient(h[0]*SW,h[1]*SH,0,h[0]*SW,h[1]*SH,h[2]*Math.max(SW,SH));g.addColorStop(0,h[3]);g.addColorStop(1,'rgba(0,0,0,0)');sx.fillStyle=g;sx.fillRect(0,0,SW,SH);});
+    sx.drawImage(haze,0,0); // soft nebula haze (pre-rendered)
     for(var i=0;i<field.length;i++){var s=field[i],a=s.a*(reduce?1:.65+.35*Math.sin(t*.001*s.s+s.p));
       sx.fillStyle='rgba('+s.c[0]+','+s.c[1]+','+s.c[2]+','+a+')';sx.beginPath();sx.arc(s.x,s.y,s.r,0,6.283);sx.fill();}
   }
@@ -90,7 +90,9 @@
       var a=reduce?.9:.7+.3*Math.sin(t*.0015+k*2);
       sparkle(gx,cx+Math.cos(th)*s.r*R,cy+Math.sin(th)*s.r*R*tilt,(innerWidth<640?6:9)*DPR,a);});
   }
-  function frame(t){drawStars(t);drawGalaxy(t);if(!reduce)requestAnimationFrame(frame);}
+  var heroVisible=true,last=0,FRAME=1000/30;
+  if('IntersectionObserver' in window){new IntersectionObserver(function(en){heroVisible=en[0].isIntersecting;}).observe(gc.parentElement);}
+  function frame(t){if(t-last>=FRAME){last=t;drawStars(t);if(heroVisible)drawGalaxy(t);}if(!reduce)requestAnimationFrame(frame);}
   function initAll(){initStars();initGalaxy();drawGalaxy(0);}
   initAll();if(!reduce)requestAnimationFrame(frame);
   var rt;addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(initAll,150);});
